@@ -97,14 +97,14 @@ public class Http2Client {
             @Override
             public void succeeded(Session session) {
                 System.out.println(LocalDateTime.now() + "::connect succeed::" + session);
-                sendData(session);
+                startSendDataTask(session);
             }
         };
 
         http2Client.connect(serverAddress, sessionListener, sessionPromise);
     }
 
-    private static void sendData(Session session) {
+    private static void startSendDataTask(Session session) {
         // Configure the request headers.
         HttpFields requestHeaders = new HttpFields();
         requestHeaders.add(HttpHeader.USER_AGENT, "Jetty HTTP2Client 10.0.21-SNAPSHOT");
@@ -131,6 +131,7 @@ public class Http2Client {
 
         });
 
+        /**
         // Configure the request headers.
         HttpFields requestHeaders2 = new HttpFields();
         requestHeaders2.put(HttpHeader.CONTENT_TYPE, "application/json");
@@ -174,5 +175,6 @@ public class Http2Client {
         // Only when the first chunk has been sent we can send the second,
         // with endStream=true to signal that there are no more frames.
         dataCF1.thenCompose(s -> s.data(new DataFrame(s.getId(), buffer2, true)));
+        **/
     }
 }

@@ -13,7 +13,10 @@ import org.eclipse.jetty.http2.api.Session;
 import org.eclipse.jetty.http2.api.Stream;
 import org.eclipse.jetty.http2.api.server.ServerSessionListener;
 import org.eclipse.jetty.http2.frames.DataFrame;
+import org.eclipse.jetty.http2.frames.GoAwayFrame;
 import org.eclipse.jetty.http2.frames.HeadersFrame;
+import org.eclipse.jetty.http2.frames.PingFrame;
+import org.eclipse.jetty.http2.frames.ResetFrame;
 import org.eclipse.jetty.http2.frames.SettingsFrame;
 import org.eclipse.jetty.http2.server.RawHTTP2ServerConnectionFactory;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -40,7 +43,7 @@ public class Http2Server {
         ServerSessionListener sessionListener = new ServerSessionListener.Adapter() {
             @Override
             public void onAccept(Session session) {
-                System.out.println(LocalDateTime.now() + "::on accept.");
+                System.out.println(LocalDateTime.now() + "::session::" + session + "::connection has been accepted by the server.");
                 if (session instanceof HTTP2Session) {
                     SocketAddress clientAddress = ((HTTP2Session) session).getEndPoint().getRemoteAddress();
                     SocketAddress serverAddress = ((HTTP2Session) session).getEndPoint().getLocalAddress();
@@ -50,19 +53,19 @@ public class Http2Server {
 
             @Override
             public Map<Integer, Integer> onPreface(Session session) {
-                System.out.println(LocalDateTime.now() + "::on perface");
+                System.out.println(LocalDateTime.now()  + "::on perface");
                 return Collections.singletonMap(SettingsFrame.ENABLE_PUSH, 0);
             }
 
             @Override
             public boolean onIdleTimeout(Session session) {
-                System.out.println(LocalDateTime.now() + "::on client idle timeout.");
+                System.out.println(LocalDateTime.now()  + "::on client idle timeout.");
                 return super.onIdleTimeout(session);
             }
 
             @Override
             public Stream.Listener onNewStream(Stream stream, HeadersFrame frame) {
-                System.out.println(LocalDateTime.now() + "::on new stream");
+                System.out.println(LocalDateTime.now() + "::session::" + stream.getSession() + "::on new stream");
                 // This is the "new stream" event, so it's guaranteed to be a request.
                 MetaData.Request request = (MetaData.Request)frame.getMetaData();
 
@@ -88,6 +91,54 @@ public class Http2Server {
                     }
                 };
             }
+
+            @Override
+            public void onSettings(Session session, SettingsFrame frame) {
+                System.out.println(LocalDateTime.now()  + "::settings frame::" + frame);
+                super.onSettings(session, frame);
+            }
+
+            @Override
+            public void onPing(Session session, PingFrame frame) {
+                System.out.println(LocalDateTime.now()  + "::ping frame::" + frame);
+                super.onPing(session, frame);
+            }
+
+            @Override
+            public void onReset(Session session, ResetFrame frame) {
+                System.out.println(LocalDateTime.now()  + "::reset frame::" + frame);
+                super.onReset(session, frame);
+            }
+
+            @Override
+            public void onClose(Session session, GoAwayFrame frame) {
+                System.out.println(LocalDateTime.now()  + "::close go away frame::" + frame);
+                super.onClose(session, frame);
+            }
+
+            @Override
+            public void onFailure(Session session, Throwable failure) {
+                System.out.println(LocalDateTime.now()  + "::failure ex::" + failure);
+                super.onFailure(session, failure);
+            }
+
+            @Override
+            public void onGoAway(Session session, GoAwayFrame frame) {
+                System.out.println(LocalDateTime.now()  + "::goaway go away frame::" + frame);
+                super.onGoAway(session, frame);
+            }
+
+            @Override
+            public void onClose(Session session, GoAwayFrame frame, Callback callback) {
+                System.out.println(LocalDateTime.now()  + "::close2 go away frame::" + frame);
+                super.onClose(session, frame, callback);
+            }
+
+            @Override
+            public void onFailure(Session session, Throwable failure, Callback callback) {
+                System.out.println(LocalDateTime.now()  + "::failure2 ex::" + failure);
+                super.onFailure(session, failure, callback);
+            }
         };
 
         // Create a ServerConnector with RawHTTP2ServerConnectionFactory.
@@ -102,7 +153,7 @@ public class Http2Server {
         ServerConnector connector = new ServerConnector(server, http2);
         connector.setPort(8089);
         //
-        connector.setIdleTimeout(15 * 1_000L);
+        connector.setIdleTimeout(150 * 1_000L);
 
         // Add the Connector to the Server
         server.addConnector(connector);
