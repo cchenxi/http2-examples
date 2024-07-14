@@ -28,14 +28,19 @@ public class StreamListener extends Stream.Listener.Adapter {
         System.out.println(LocalDateTime.now() + "::Consuming buffer " + buffer);
         byte[] bytes = new byte[buffer.remaining()];
         buffer.get(bytes);
-        System.out.println(new String(bytes, StandardCharsets.UTF_8));
+        String message = new String(bytes, StandardCharsets.UTF_8);
+        System.out.println(message);
 
         // 测试
         System.out.println(stream.getIdleTimeout());
 
-        stream.setIdleTimeout(20 * 1_000L);
+        // stream设置idleTimeout仍然需要重写onIdleTimeout方法，确认该方法是否close了session
+//        stream.setIdleTimeout(20 * 1_000L);
 
-//        stream.reset(new ResetFrame(stream.getId(), -20), Callback.NOOP);
+        // server端发现报文异常，将Stream reset方案更合理
+        if (message.contains("jetty")) {
+            stream.reset(new ResetFrame(stream.getId(), -20), Callback.NOOP);
+        }
 
         System.out.println(stream.getIdleTimeout());
 
@@ -48,9 +53,15 @@ public class StreamListener extends Stream.Listener.Adapter {
 
     @Override
     public boolean onIdleTimeout(Stream stream, Throwable x) {
-        System.out.println(LocalDateTime.now());
+        System.out.println(LocalDateTime.now() + " on idle timeout");
         // 可以设置服务端主动断开连接
         stream.getSession().close(200, "idle timeout", Callback.NOOP);
         return true;
+    }
+
+    @Override
+    public void onReset(Stream stream, ResetFrame frame) {
+        System.out.println(LocalDateTime.now() + " on reset");
+        super.onReset(stream, frame);
     }
 }
